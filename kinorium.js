@@ -217,17 +217,27 @@
             }
         });
         
-        // Основное поле для ввода ID - должно быть первым после заголовка
+        // Кнопка для ввода ID пользователя
+        var currentUserId = Lampa.Storage.get('kinorium_user_id', '');
         Lampa.SettingsApi.addParam({
             component: 'kinorium',
             param: {
-                name: 'kinorium_user_id',
-                type: 'text',
-                default: ''
+                type: 'button',
+                name: 'kinorium_set_user_id'
             },
             field: {
-                name: 'ID пользователя',
-                description: 'Введите ваш ID пользователя на Кинориуме'
+                name: currentUserId ? 'ID: ' + currentUserId : 'Установить ID пользователя',
+                description: 'Нажмите чтобы установить ваш ID пользователя Кинориум'
+            },
+            onChange: () => {
+                Lampa.Dialog.field('Введите ID пользователя Кинориум', currentUserId, 'text').then((id) => {
+                    if (id !== false) {
+                        Lampa.Storage.set('kinorium_user_id', id);
+                        Lampa.Noty.show('ID пользователя установлен');
+                        // Обновляем отображение
+                        $('div[data-name="kinorium_set_user_id"]').find('.settings-param__name').text('ID: ' + id);
+                    }
+                });
             }
         });
         
@@ -285,7 +295,6 @@
             }
         });
         
-        // Устанавливаем флаг, что настройки добавлены
         window.lampa_settings.kinorium = true;
     }
     
