@@ -278,30 +278,39 @@
                 name: 'kinorium_user_id'
             },
             field: {
-                name: Lampa.Storage.get('kinorium_user_id', '') 
-                    ? 'ID: ' + Lampa.Storage.get('kinorium_user_id', '') 
-                    : 'Установить ID пользователя',
-                description: 'Нажмите, чтобы ввести ваш ID'
+                name: 'Установить ID пользователя',
+                description: 'Нажмите для ввода ID'
             },
             onChange: function() {
-                let currentId = Lampa.Storage.get('kinorium_user_id', '');
-                Lampa.Dialog.field('Введите ID пользователя Кинориум', currentId, 'text')
-                    .then(function(newId) {
-                        if (newId !== false) {
-                            Lampa.Storage.set('kinorium_user_id', newId);
-                            Lampa.Noty.show('ID пользователя сохранён');
-                            setTimeout(function() {
-                                $('div[data-name="kinorium_user_id"] .settings-param__name')
-                                    .text('ID: ' + newId);
-                            }, 100);
+                let current = Lampa.Storage.get('kinorium_user_id', '');
+
+                // Строим html с инпутом
+                let html = $('<div class="dialog-input">')
+                    .append('<div class="selector">Введите ID:</div>')
+                    .append('<input type="text" id="kinorium_id_input" value="' + current + '" style="width:100%;padding:10px;margin-top:10px;">');
+
+                // Открываем диалог
+                Lampa.Dialog.open({
+                    title: 'Kinorium ID',
+                    html: html,
+                    onBack: function() {
+                        Lampa.Dialog.close();
+                    },
+                    onSelect: function() {
+                        let val = $('#kinorium_id_input').val();
+                        if (val) {
+                            Lampa.Storage.set('kinorium_user_id', val);
+                            Lampa.Noty.show('ID сохранён: ' + val);
                         }
-                    });
+                        Lampa.Dialog.close();
+                    }
+                });
             }
         });
 		
 		
 		
-        // Устанавливаем флаг, что настройки добавлены 3
+        // Устанавливаем флаг, что настройки добавлены 4
         window.lampa_settings.kinorium = true;
     }
     
