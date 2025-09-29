@@ -275,7 +275,7 @@
             component: 'kinorium',
             param: {
                 name: 'kinorium_user_id',
-                type: 'input',   // вместо text
+                type: 'string',   // вместо text
                 default: ''
             },
             field: {
@@ -286,7 +286,7 @@
 		
 		
 		
-        // Устанавливаем флаг, что настройки добавлены 222
+        // Устанавливаем флаг, что настройки добавлены 2222
         window.lampa_settings.kinorium = true;
     }
     
