@@ -198,7 +198,7 @@
             });
         }
 
-        // SETTINGS - точная копия структуры из оригинала
+        // SETTINGS
         if(!window.lampa_settings.kinorium) {
             Lampa.SettingsApi.addComponent({
                 component: 'kinorium',
@@ -217,6 +217,7 @@
             }
         });
         
+        // Основное поле для ввода ID - должно быть первым после заголовка
         Lampa.SettingsApi.addParam({
             component: 'kinorium',
             param: {
@@ -257,6 +258,21 @@
             component: 'kinorium',
             param: {
                 type: 'button',
+                name: 'kinorium_refresh'
+            },
+            field: {
+                name: 'Обновить список',
+                description: 'Загрузить актуальный список фильмов'
+            },
+            onChange: () => {
+                getKinoriumData();
+            }
+        });
+        
+        Lampa.SettingsApi.addParam({
+            component: 'kinorium',
+            param: {
+                type: 'button',
                 name: 'kinorium_delete_cache'
             },
             field: {
@@ -268,6 +284,9 @@
                 Lampa.Noty.show('Кэш Кинориума очищен');
             }
         });
+        
+        // Устанавливаем флаг, что настройки добавлены
+        window.lampa_settings.kinorium = true;
     }
     
     if(!window.kinorium_ready) {
