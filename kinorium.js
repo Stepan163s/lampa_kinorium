@@ -15,7 +15,6 @@
             if(Lampa.Storage.get('kinorium_launched_before', false) == false) {
                 Lampa.Storage.set('kinorium_launched_before', true);
                 Lampa.Activity.push({
-                    url: '',
                     title: 'Кинориум',
                     component: 'kinorium',
                     page: 1
@@ -90,7 +89,7 @@
             }
         }
         kinoriumMovies = filteredMovies;
-        Lampa.Storage.set('kinorium_movies', JSON.stringify(kinoriumMovies));
+        Lampa.Storage.set('kinorium_movies', kinoriumMovies);
         
         var processedItems = 1;
         
@@ -126,7 +125,7 @@
                                 movieItem.source = "tmdb";
                                 var currentMovies = Lampa.Storage.get('kinorium_movies', []);
                                 currentMovies.unshift(movieItem);
-                                Lampa.Storage.set('kinorium_movies', JSON.stringify(currentMovies));
+                                Lampa.Storage.set('kinorium_movies', currentMovies);
                             } else {
                                 if (Lampa.Storage.get('kinorium_add_to_favorites', false)) {
                                     Lampa.Favorite.add('wath', movieItem, 100);
@@ -168,7 +167,7 @@
             getKinoriumData();
         }
         oncomplete({
-            "secuses": true,
+            "success": true,
             "page": 1,
             "results": Lampa.Storage.get('kinorium_movies', [])
         });
@@ -224,7 +223,6 @@
             
             button.on('hover:enter', function() {
                 Lampa.Activity.push({
-                    url: '',
                     title: 'Кинориум',
                     component: 'kinorium',
                     page: 1
@@ -241,6 +239,9 @@
                 return;
             }
 
+            // Инициализируем lampa_settings если не существует
+            window.lampa_settings = window.lampa_settings || {};
+            
             if (!window.lampa_settings.kinorium) {
                 Lampa.SettingsApi.addComponent({
                     component: 'kinorium',
@@ -270,10 +271,22 @@
                         description: 'Нажмите чтобы установить ваш ID пользователя Кинориум'
                     },
                     onChange: function() {
-                        Lampa.Dialog.field('Введите ID пользователя Кинориум', currentUserId, 'text').then(function(id) {
-                            if (id !== false) {
+                        // Используем Lampa.Input вместо Lampa.Dialog.field
+                        Lampa.Input({
+                            title: 'Введите ID пользователя Кинориум',
+                            value: currentUserId || '',
+                            type: 'text'
+                        }, function(id) {
+                            if (id) {
                                 Lampa.Storage.set('kinorium_user_id', id);
                                 Lampa.Noty.show('ID пользователя установлен');
+                                // Обновляем отображение
+                                setTimeout(function() {
+                                    var element = $('div[data-name="kinorium_set_user_id"]');
+                                    if (element.length) {
+                                        element.find('.settings-param__name').text('ID: ' + id);
+                                    }
+                                }, 100);
                             }
                         });
                     }
@@ -351,7 +364,7 @@
         }
     }
 
-    // Запускаем плагин после полной загрузки Lampa
+    // Запускаем плагин после полной загрузки Lampa 2
     if (!window.kinorium_ready) {
         window.kinorium_ready = true;
         
