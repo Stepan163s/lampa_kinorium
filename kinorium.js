@@ -271,22 +271,22 @@
         
         
 		
-		Lampa.SettingsApi.addParam({
-			component: 'kinorium',
-			param: {
-				name: 'kinorium_user_id',
-				type: 'input',   // вместо text
-				default: ''
-			},
-			field: {
-				name: 'ID пользователя',
-				description: 'Введите ваш ID пользователя на Кинориуме'
-			}
-		});
+        Lampa.SettingsApi.addParam({
+            component: 'kinorium',
+            param: {
+                name: 'kinorium_user_id',
+                type: 'input',   // вместо text
+                default: ''
+            },
+            field: {
+                name: 'ID пользователя',
+                description: 'Введите ваш ID пользователя на Кинориуме'
+            }
+        });
 		
 		
 		
-        // Устанавливаем флаг, что настройки добавлены 22
+        // Устанавливаем флаг, что настройки добавлены 222
         window.lampa_settings.kinorium = true;
     }
     
