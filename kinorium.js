@@ -269,23 +269,24 @@
             }
         });
         
-        Lampa.SettingsApi.addParam({
-            component: 'kinorium',
-            param: {
-                type: 'button',
-                name: 'kinorium_delete_cache'
-            },
-            field: {
-                name: 'Очистить кэш фильмов',
-                description: 'Необходимо при возникновении проблем'
-            },
-            onChange: () => {
-                Lampa.Storage.set('kinorium_movies', []);
-                Lampa.Noty.show('Кэш Кинориума очищен');
-            }
-        });
         
-        // Устанавливаем флаг, что настройки добавлены
+		
+		Lampa.SettingsApi.addParam({
+			component: 'kinorium',
+			param: {
+				name: 'kinorium_user_id',
+				type: 'input',   // вместо text
+				default: ''
+			},
+			field: {
+				name: 'ID пользователя',
+				description: 'Введите ваш ID пользователя на Кинориуме'
+			}
+		});
+		
+		
+		
+        // Устанавливаем флаг, что настройки добавлены 22
         window.lampa_settings.kinorium = true;
     }
     
