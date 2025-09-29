@@ -274,19 +274,34 @@
         Lampa.SettingsApi.addParam({
             component: 'kinorium',
             param: {
-                name: 'kinorium_user_id',
-                type: 'string',   // вместо text
-                default: ''
+                type: 'button',
+                name: 'kinorium_user_id'
             },
             field: {
-                name: 'ID пользователя',
-                description: 'Введите ваш ID пользователя на Кинориуме'
+                name: Lampa.Storage.get('kinorium_user_id', '') 
+                    ? 'ID: ' + Lampa.Storage.get('kinorium_user_id', '') 
+                    : 'Установить ID пользователя',
+                description: 'Нажмите, чтобы ввести ваш ID'
+            },
+            onChange: function() {
+                let currentId = Lampa.Storage.get('kinorium_user_id', '');
+                Lampa.Dialog.field('Введите ID пользователя Кинориум', currentId, 'text')
+                    .then(function(newId) {
+                        if (newId !== false) {
+                            Lampa.Storage.set('kinorium_user_id', newId);
+                            Lampa.Noty.show('ID пользователя сохранён');
+                            setTimeout(function() {
+                                $('div[data-name="kinorium_user_id"] .settings-param__name')
+                                    .text('ID: ' + newId);
+                            }, 100);
+                        }
+                    });
             }
         });
 		
 		
 		
-        // Устанавливаем флаг, что настройки добавлены 2222
+        // Устанавливаем флаг, что настройки добавлены 3
         window.lampa_settings.kinorium = true;
     }
     
