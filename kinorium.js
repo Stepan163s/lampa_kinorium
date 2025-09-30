@@ -210,47 +210,57 @@
         
         console.log('Kinorium', 'Fetching data for user:', userId);
         
-        // Пробуем разные варианты URL
-        var urlsToTry = [
-            // Прямой запрос (может не работать из-за CORS)
-            'https://ru.kinorium.com/user/' + userId + '/watchlist/',
+        // Используем Google Apps Script как прокси (аналогично плагину Кинопоиска)
+        var googleScriptUrl = 'https://script.google.com/macros/s/AKfycbwQhxl9xQPv46uChWJ1UDg6BjSmefbSlTRUoSZz5f1rZDRvdhAGTi6RHyXwcSeyBtPr/exec?kinorium=' + userId;
+        
+        network.silent(googleScriptUrl, function(html) {
+            if (html && html.length > 1000) {
+                processKinoriumData(html);
+            } else {
+                Lampa.Noty.show('Не удалось получить данные с Кинориума через Google Script');
+                console.log('Kinorium', 'Invalid HTML received from Google Script');
+            }
+        }, function(error) {
+            Lampa.Noty.show('Ошибка при получении данных через Google Script');
+            console.log('Kinorium', 'Google Script error:', error);
             
-            // Разные CORS прокси
-            'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://ru.kinorium.com/user/' + userId + '/watchlist/'),
-            'https://cors-anywhere.herokuapp.com/https://ru.kinorium.com/user/' + userId + '/watchlist/',
+            // Если Google Script не работает, пробуем альтернативные методы
+            tryAlternativeMethods(userId);
+        });
+    }
+
+    function tryAlternativeMethods(userId) {
+        console.log('Kinorium', 'Trying alternative methods for user:', userId);
+        
+        // Альтернативные методы получения данных
+        var alternativeUrls = [
+            'https://corsproxy.io/?' + encodeURIComponent('https://ru.kinorium.com/user/' + userId + '/watchlist/'),
             'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent('https://ru.kinorium.com/user/' + userId + '/watchlist/'),
-            
-            // Альтернативные домены Кинориума
-            'https://kinorium.com/user/' + userId + '/watchlist/',
-            'https://www.kinorium.com/user/' + userId + '/watchlist/'
+            'https://cors-anywhere.herokuapp.com/https://ru.kinorium.com/user/' + userId + '/watchlist/'
         ];
         
-        function tryNextUrl(index) {
-            if (index >= urlsToTry.length) {
-                Lampa.Noty.show('Не удалось подключиться к Кинориуму');
-                console.log('Kinorium', 'All URL attempts failed');
+        function tryNextAlternative(index) {
+            if (index >= alternativeUrls.length) {
+                Lampa.Noty.show('Все методы получения данных не сработали');
                 return;
             }
             
-            var url = urlsToTry[index];
-            console.log('Kinorium', 'Trying URL:', url);
+            var url = alternativeUrls[index];
+            console.log('Kinorium', 'Trying alternative URL:', index, url);
             
             network.silent(url, function(html) {
                 if (html && html.length > 1000) {
-                    console.log('Kinorium', 'Success with URL index:', index);
                     processKinoriumData(html);
                 } else {
-                    console.log('Kinorium', 'Empty response from URL index:', index);
-                    tryNextUrl(index + 1);
+                    tryNextAlternative(index + 1);
                 }
             }, function(error) {
-                console.log('Kinorium', 'Error with URL index:', index, error);
-                tryNextUrl(index + 1);
+                console.log('Kinorium', 'Alternative URL failed:', index, error);
+                tryNextAlternative(index + 1);
             });
         }
         
-        // Начинаем с первого URL
-        tryNextUrl(0);
+        tryNextAlternative(0);
     }
 
     function full(params, oncomplete, onerror) {
@@ -404,7 +414,7 @@
             },
             field: {
                 name: 'Очистить кэш фильмов',
-                description: 'Необходимо при возникновении проблемов5'
+                description: 'Необходимо при возникновении проблем34'
             },
             onChange: () => {
                 Lampa.Storage.set('kinorium_movies', []);
