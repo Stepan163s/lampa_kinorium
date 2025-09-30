@@ -210,17 +210,10 @@
         
         console.log('Kinorium', 'Fetching data for user:', userId);
         
-        // Используем разные CORS прокси для надежности
+        // Прямой запрос к Кинориуму без CORS прокси
         var targetUrl = 'https://ru.kinorium.com/user/' + userId + '/watchlist/';
-        var proxyUrls = [
-            'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(targetUrl),
-            'https://corsproxy.io/?' + encodeURIComponent(targetUrl),
-            'https://cors-anywhere.herokuapp.com/' + targetUrl
-        ];
         
-        var proxyUrl = proxyUrls[0]; // используем первый прокси
-        
-        network.silent(proxyUrl, function(html) {
+        network.silent(targetUrl, function(html) {
             if (html && html.length > 1000) { // проверяем, что получили нормальный HTML
                 processKinoriumData(html);
             } else {
@@ -384,7 +377,7 @@
             },
             field: {
                 name: 'Очистить кэш фильмов',
-                description: 'Необходимо при возникновении проблем'
+                description: 'Необходимо при возникновении проблемооо'
             },
             onChange: () => {
                 Lampa.Storage.set('kinorium_movies', []);
