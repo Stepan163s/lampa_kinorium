@@ -1,6 +1,32 @@
 (function() {
     'use strict';
-    var network = new Lampa.Reguest();
+
+    // Поддержка разных имен конструктора для запросов в разных билдах Lampa
+    var network;
+    try {
+        if (typeof Lampa !== 'undefined') {
+            if (typeof Lampa.Request !== 'undefined') network = new Lampa.Request();
+            else if (typeof Lampa.Reguest !== 'undefined') network = new Lampa.Reguest();
+            else {
+                // fallback: попытка создать Request если есть (на всякий)
+                network = (Lampa.Request) ? new Lampa.Request() : null;
+            }
+        }
+    } catch (e) {
+        network = null;
+        console.error('Network constructor not found:', e);
+    }
+
+    // Если network так и не получился — создаём "заглушку", чтобы не падать
+    if (!network) {
+        network = {
+            silent: function(url, success, error) {
+                console.warn('Network not available. Silent call to', url);
+                if (typeof error === 'function') error({ message: 'Network unavailable' });
+            },
+            clear: function() {}
+        };
+    }
 
     function testInternetConnection() {
         console.log('Testing internet connection...');
@@ -9,12 +35,12 @@
             'https://www.google.com',
             'https://ya.ru',
             'https://api.alloha.tv/?token=04941a9a3ca3ac16e2b4327347bbc1&name=test',
-            Lampa.Utils.protocol() + 'tmdb.' + Lampa.Manifest.cub_domain + '/3/movie/550?api_key=4ef0d7355d9ffb5151e987764708ce96'
+            (typeof Lampa !== 'undefined' && Lampa.Utils && Lampa.Manifest) ? (Lampa.Utils.protocol() + 'tmdb.' + Lampa.Manifest.cub_domain + '/3/movie/550?api_key=4ef0d7355d9ffb5151e987764708ce96') : 'https://api.themoviedb.org/3/movie/550?api_key=4ef0d7355d9ffb5151e987764708ce96'
         ];
 
         function testNextUrl(index) {
             if (index >= testUrls.length) {
-                Lampa.Noty.show('Все тестовые запросы не удались — проблема с интернетом');
+                Lampa.Noty.show('Все тестовые запросы не удались — возможно проблема с интернетом');
                 return;
             }
 
@@ -22,10 +48,11 @@
             console.log('Testing URL:', url);
 
             network.silent(url, function(data) {
-                console.log('SUCCESS: URL worked:', url);
-                Lampa.Noty.show('Интернет работает! URL: ' + url);
+                console.log('SUCCESS: URL worked:', url, data);
+                Lampa.Noty.show('Интернет работает! Успешный URL: ' + url);
             }, function(error) {
                 console.log('FAILED: URL failed:', url, error);
+                // идём к следующему URL
                 testNextUrl(index + 1);
             });
         }
@@ -33,81 +60,120 @@
         testNextUrl(0);
     }
 
+    function testKinoriumDirect() {
+        var testUrl = 'https://ru.kinorium.com/user/928543/watchlist/';
+        console.log('Testing Kinorium direct URL:', testUrl);
+
+        network.silent(testUrl, function(data) {
+            console.log('Kinorium direct SUCCESS:', data);
+            Lampa.Noty.show('Кинориум доступен напрямую (возможно CORS не проблема в твоей среде)');
+        }, function(error) {
+            console.log('Kinorium direct FAILED:', error);
+            var msg = 'Кинориум недоступен напрямую';
+            if (error && (error.decode_error || error.statusText)) msg += ': ' + (error.decode_error || error.statusText);
+            Lampa.Noty.show(msg);
+        });
+    }
+
+    function testKinoriumViaProxy() {
+        // Твой Google Apps Script proxy URL
+        var proxyBase = 'https://script.google.com/macros/s/AKfycbx-K7Z8Bbcplv-kTRhSsfG2PLyCh-oRFpKba1kk6IYoltuimlcPC73mZEX4oOOP-C6I/exec';
+
+        // Цель (можешь заменить ID на свой)
+        var target = 'https://ru.kinorium.com/user/928543/watchlist/';
+        var finalUrl = proxyBase + '?url=' + encodeURIComponent(target);
+
+        console.log('Testing Kinorium via Google Proxy:', finalUrl);
+
+        network.silent(finalUrl, function(data) {
+            console.log('Kinorium Proxy SUCCESS. Response length:', (data && data.length) ? data.length : 'unknown', data);
+            // Пытаемся понять, вернулось ли HTML (простой эвристический поиск по "<html" или "kinorium")
+            var ok = false;
+            try {
+                var text = (typeof data === 'string') ? data : (data && data.contentText ? data.contentText : JSON.stringify(data));
+                if (text && (text.indexOf('<html') !== -1 || /kinorium/i.test(text) || text.length > 50)) ok = true;
+            } catch (e) {
+                console.warn('Proxy response parse error', e);
+            }
+
+            if (ok) Lampa.Noty.show('Кинориум через Proxy доступен — прокси вернул ответ.');
+            else Lampa.Noty.show('Proxy ответ получен, но не похоже на HTML Кинориума (проверь скрипт).');
+        }, function(error) {
+            console.log('Kinorium Proxy FAILED:', error);
+            var msg = 'Кинориум через Proxy недоступен';
+            if (error && (error.decode_error || error.statusText)) msg += ': ' + (error.decode_error || error.statusText);
+            Lampa.Noty.show(msg);
+        });
+    }
+
     function startPlugin() {
-        if (!window.lampa_settings.kinorium_test) {
+        var compName = 'kinorium_test';
+        if (!window.lampa_settings) window.lampa_settings = window.lampa_settings || {};
+        if (!window.lampa_settings[compName]) {
             Lampa.SettingsApi.addComponent({
-                component: 'kinorium_test',
+                component: compName,
                 icon: '⚡️',
                 name: 'Тест интернета / прокси'
             });
         }
 
+        // Заголовок
         Lampa.SettingsApi.addParam({
-            component: 'kinorium_test',
+            component: compName,
             param: { type: 'title' },
             field: { name: 'Проверка подключения' }
         });
 
+        // Кнопка: базовый тест интернета
         Lampa.SettingsApi.addParam({
-            component: 'kinorium_test',
+            component: compName,
             param: { type: 'button', name: 'test_internet' },
             field: {
                 name: 'Проверить интернет',
                 description: 'Тестовые запросы к разным сервисам'
             },
-            onChange: () => {
+            onChange: function() {
                 testInternetConnection();
             }
         });
 
+        // Кнопка: прямой запрос к Кинориуму
         Lampa.SettingsApi.addParam({
-            component: 'kinorium_test',
-            param: { type: 'button', name: 'test_kinorium' },
+            component: compName,
+            param: { type: 'button', name: 'test_kinorium_direct' },
             field: {
                 name: 'Проверить Кинориум (прямой)',
-                description: 'Прямой запрос к Кинориуму'
+                description: 'Попытка прямого запроса к ru.kinorium.com'
             },
-            onChange: () => {
-                var testUrl = 'https://ru.kinorium.com/user/928543/watchlist/';
-                console.log('Testing Kinorium URL:', testUrl);
-
-                network.silent(testUrl, function(data) {
-                    console.log('Kinorium SUCCESS:', data);
-                    Lampa.Noty.show('Кинориум доступен (прямой запрос)!');
-                }, function(error) {
-                    console.log('Kinorium FAILED:', error);
-                    Lampa.Noty.show('Кинориум недоступен (прямой): ' + (error.decode_error || error.statusText));
-                });
+            onChange: function() {
+                testKinoriumDirect();
             }
         });
 
+        // Кнопка: запрос через Google Apps Script proxy
         Lampa.SettingsApi.addParam({
-            component: 'kinorium_test',
+            component: compName,
             param: { type: 'button', name: 'test_kinorium_proxy' },
             field: {
                 name: 'Проверить Кинориум (через Google Proxy)',
-                description: 'Запрос к Кинориуму через Google Apps Script'
+                description: 'Запрос через твой Google Apps Script (вставлен URL автоматически)'
             },
-            onChange: () => {
-                var proxyBase = 'https://script.google.com/macros/s/AKfycbx-K7Z8Bbcplv-kTRhSsfG2PLyCh-oRFpKba1kk6IYoltuimlcPC73mZEX4oOOP-C6I/exec';
-                var targetUrl = encodeURIComponent('https://ru.kinorium.com/user/928543/watchlist/');
-                var finalUrl = proxyBase + '?url=' + targetUrl;
-
-                console.log('Testing Kinorium via Proxy:', finalUrl);
-
-                network.silent(finalUrl, function(data) {
-                    console.log('Kinorium Proxy SUCCESS:', data);
-                    Lampa.Noty.show('Кинориум через Proxy доступен!');
-                }, function(error) {
-                    console.log('Kinorium Proxy FAILED:', error);
-                    Lampa.Noty.show('Кинориум через Proxy недоступен: ' + (error.decode_error || error.statusText));
-                });
+            onChange: function() {
+                testKinoriumViaProxy();
             }
         });
+
+        // Устанавливаем флаг
+        window.lampa_settings[compName] = true;
+
+        console.log('Kinorium test plugin initialized. Proxy URL:', 'https://script.google.com/macros/s/AKfycbx-K7Z8Bbcplv-kTRhSsfG2PLyCh-oRFpKba1kk6IYoltuimlcPC73mZEX4oOOP-C6I/exec');
     }
 
     if (!window.internet_test_ready) {
         window.internet_test_ready = true;
-        startPlugin();
+        if (window.appready) startPlugin();
+        else Lampa.Listener.follow('app', function(e) {
+            if (e.type === 'ready') startPlugin();
+        });
     }
 })();
