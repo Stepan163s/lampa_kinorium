@@ -210,20 +210,47 @@
         
         console.log('Kinorium', 'Fetching data for user:', userId);
         
-        // Прямой запрос к Кинориуму без CORS прокси
-        var targetUrl = 'https://ru.kinorium.com/user/' + userId + '/watchlist/';
+        // Пробуем разные варианты URL
+        var urlsToTry = [
+            // Прямой запрос (может не работать из-за CORS)
+            'https://ru.kinorium.com/user/' + userId + '/watchlist/',
+            
+            // Разные CORS прокси
+            'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://ru.kinorium.com/user/' + userId + '/watchlist/'),
+            'https://cors-anywhere.herokuapp.com/https://ru.kinorium.com/user/' + userId + '/watchlist/',
+            'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent('https://ru.kinorium.com/user/' + userId + '/watchlist/'),
+            
+            // Альтернативные домены Кинориума
+            'https://kinorium.com/user/' + userId + '/watchlist/',
+            'https://www.kinorium.com/user/' + userId + '/watchlist/'
+        ];
         
-        network.silent(targetUrl, function(html) {
-            if (html && html.length > 1000) { // проверяем, что получили нормальный HTML
-                processKinoriumData(html);
-            } else {
-                Lampa.Noty.show('Не удалось получить данные с Кинориума');
-                console.log('Kinorium', 'Invalid HTML received');
+        function tryNextUrl(index) {
+            if (index >= urlsToTry.length) {
+                Lampa.Noty.show('Не удалось подключиться к Кинориуму');
+                console.log('Kinorium', 'All URL attempts failed');
+                return;
             }
-        }, function(error) {
-            Lampa.Noty.show('Ошибка при получении данных с Кинориума');
-            console.log('Kinorium', 'Fetch error:', error);
-        });
+            
+            var url = urlsToTry[index];
+            console.log('Kinorium', 'Trying URL:', url);
+            
+            network.silent(url, function(html) {
+                if (html && html.length > 1000) {
+                    console.log('Kinorium', 'Success with URL index:', index);
+                    processKinoriumData(html);
+                } else {
+                    console.log('Kinorium', 'Empty response from URL index:', index);
+                    tryNextUrl(index + 1);
+                }
+            }, function(error) {
+                console.log('Kinorium', 'Error with URL index:', index, error);
+                tryNextUrl(index + 1);
+            });
+        }
+        
+        // Начинаем с первого URL
+        tryNextUrl(0);
     }
 
     function full(params, oncomplete, onerror) {
@@ -377,7 +404,7 @@
             },
             field: {
                 name: 'Очистить кэш фильмов',
-                description: 'Необходимо при возникновении проблемооо'
+                description: 'Необходимо при возникновении проблемов5'
             },
             onChange: () => {
                 Lampa.Storage.set('kinorium_movies', []);
