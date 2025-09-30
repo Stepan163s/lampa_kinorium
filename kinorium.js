@@ -76,33 +76,20 @@
     }
 
     function testKinoriumViaProxy() {
-        // Твой Google Apps Script proxy URL
         var proxyBase = 'https://script.google.com/macros/s/AKfycbx-K7Z8Bbcplv-kTRhSsfG2PLyCh-oRFpKba1kk6IYoltuimlcPC73mZEX4oOOP-C6I/exec';
-
-        // Цель (можешь заменить ID на свой)
         var target = 'https://ru.kinorium.com/user/928543/watchlist/';
         var finalUrl = proxyBase + '?url=' + encodeURIComponent(target);
 
         console.log('Testing Kinorium via Google Proxy:', finalUrl);
 
         network.silent(finalUrl, function(data) {
-            console.log('Kinorium Proxy SUCCESS. Response length:', (data && data.length) ? data.length : 'unknown', data);
-            // Пытаемся понять, вернулось ли HTML (простой эвристический поиск по "<html" или "kinorium")
-            var ok = false;
-            try {
-                var text = (typeof data === 'string') ? data : (data && data.contentText ? data.contentText : JSON.stringify(data));
-                if (text && (text.indexOf('<html') !== -1 || /kinorium/i.test(text) || text.length > 50)) ok = true;
-            } catch (e) {
-                console.warn('Proxy response parse error', e);
-            }
-
-            if (ok) Lampa.Noty.show('Кинориум через Proxy доступен — прокси вернул ответ.');
-            else Lampa.Noty.show('Proxy ответ получен, но не похоже на HTML Кинориума (проверь скрипт).');
+            console.log('Kinorium Proxy SUCCESS. Response length:', (data && data.length) ? data.length : 'unknown');
+            Lampa.Noty.show('Кинориум через Proxy доступен! Длина ответа: ' + (data.length || 'unknown'));
         }, function(error) {
             console.log('Kinorium Proxy FAILED:', error);
-            var msg = 'Кинориум через Proxy недоступен';
-            if (error && (error.decode_error || error.statusText)) msg += ': ' + (error.decode_error || error.statusText);
-            Lampa.Noty.show(msg);
+            Lampa.Noty.show('Кинориум через Proxy недоступен: ' + (error.decode_error || error.statusText));
+        }, {
+            dataType: 'text'   // <<< добавляем вот это
         });
     }
 
